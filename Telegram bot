@@ -1,0 +1,55 @@
+pip install aiogram instaloader
+import os
+import instaloader
+from aiogram import Bot, Dispatcher, types
+from aiogram.types import ParseMode
+from aiogram.utils import executor
+
+# Telegram bot tokeni (BotFather'dan olingan tokenni shu joyga yozing)
+TOKEN = "7582233024:AAH-UwDFk06U0debeovAdcu-E9Vpr2pDb30"
+
+# Bot va dispatcher obyektlarini yaratamiz
+bot = Bot(token=TOKEN)
+dp = Dispatcher(bot)
+
+# Instaloader obyektini yaratamiz
+L = instaloader.Instaloader()
+
+# Instagram videolarini yuklab berish
+@dp.message_handler()
+async def download_instagram_video(message: types.Message):
+    url = message.text
+
+    if "instagram.com/p/" in url or "instagram.com/reel/" in url:
+        await message.reply("⏳ Videoni yuklab olmoqdaman, biroz kuting...")
+
+        try:
+            # Post shortcode ni ajratib olish
+            shortcode = url.split("/")[-2]
+            post = instaloader.Post.from_shortcode(L.context, shortcode)
+
+            # Fayl nomi
+            filename = f"{shortcode}.mp4"
+
+            # Videoni yuklab olish
+            for item in post.get_sidecar_nodes() if post.is_sidecar else [post]:
+                if item.is_video:
+                    os.system(f"wget -O {filename} {item.video_url}")
+
+                    # Foydalanuvchiga videoni yuborish
+                    with open(filename, "rb") as video:
+                        await message.reply_video(video)
+
+                    # Yuklangan faylni o‘chirish
+                    os.remove(filename)
+
+        except Exception as e:
+            await message.reply(f"Xatolik yuz berdi: {str(e)}")
+
+    else:
+        await message.reply("Instagram video yoki rasm havolasini yuboring!")
+
+# Botni ishga tushiramiz
+if __name__ == "__main__":
+    executor.start_polling(dp, skip_updates=True)
+python bot.py
